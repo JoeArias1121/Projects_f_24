@@ -1,0 +1,7 @@
+
+username:  p_s24_03
+
+password:  41brdm
+
+database name:  p_s24_03_db
+

@@ -1,0 +1,33 @@
+	<?php
+        $messageSenderId = $row['message_sender'];
+        // $messageReceiverId = $row['message_receiver']; //getting ride of this since if youre recieving the letter and youre not the admin you know who the reciever is
+        $messageTypeId = $row['message_type'];
+		$messageStatusId = $row['message_status'];
+	?>
+        <label class="w3-input" for="sender">Sender</label>
+        <input class="w3-input" id="sender" name="sender" type="text" value="<?php echo mysqli_fetch_assoc(mysqli_query($db_conn, "SELECT * FROM f20_user_table WHERE UID = '$messageSenderId'"))['user_name']; ?>" readonly>
+        <label class="w3-input" for="receiver">Receiver</label>
+        <input class="w3-input" id="receiver" name="receiver" type="text" value="<?php echo mysqli_fetch_assoc(mysqli_query($db_conn, "SELECT * FROM f20_user_table WHERE UID = '$messageReceiverId'"))['user_name']; ?>" readonly> 
+        <label class="w3-input" for="type">Message Type</label>
+        <input class="w3-input" id="type" name="type" type="type" value="<?php echo mysqli_fetch_assoc(mysqli_query($db_conn, "SELECT * FROM f20_messageType_T WHERE messageType_id = '$messageTypeId'"))['messageType_Title']; ?>" readonly>
+        <label class="w3-input" for="status">Message Status</label>
+        <input class="w3-input" id="status" name="status" type="status" value="<?php 
+		//update message status from new to read if it is being opened by the receiver
+		if($messageStatusId == 1 && $messageReceiverId == $_SESSION['user_id']){
+			$update_stmt = "UPDATE f20_message_T SET message_status = 2 WHERE message_id = '$messageID'";
+			mysqli_query($db_conn, $update_stmt);
+			$messageStatusId = 2;
+		}
+		echo mysqli_fetch_assoc(mysqli_query($db_conn, "SELECT * FROM f20_messageStatus_T WHERE messageStatus_id = '$messageStatusId'"))['messageStatus_title'];
+		?>" readonly>	
+		
+        <label class="w3-input" for="subject">Message Subject</label>
+		<input class="w3-input" id="subject" name="subject" type="text" value="<?php echo $row['message_subject']; ?>" readonly>		
+        <br>
+		<label class="w3-input" for="contents">Message Contents</label>
+		<textarea id="contents" name="contents" type="text" class="w3-input" readonly><?php echo $row['message_contents']; ?></textarea>
+        <div id="editButtons" style="display: none;">
+            <button type="submit" class="w3-button w3-blue" name="saveUserChanges">Save</button>
+            <button type="button" class="w3-button w3-red" onclick="disableEdit()">Cancel</button>
+        </div>
+    </form>

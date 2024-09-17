@@ -1,0 +1,202 @@
+<?php
+// initialize the session
+if (!isset($_SESSION)) {
+    session_start();
+}
+
+include_once('../../../../backend/db_connector.php');
+
+
+// get jobTemplate_id from $_GET from view-one-job-template.php
+if (!empty($_GET["jobTemplate_id"])) {
+    $current_jobTemplate_id = trim($_GET["jobTemplate_id"]);
+}
+
+// add a task template 
+if (isset($_GET['jobTemplate_id']) && isset($_GET['add_task_temp_id'])) {
+
+    $current_jobTemplate_id = $_GET['jobTemplate_id'];
+    $add_task_temp_id = $_GET['add_task_temp_id'];
+
+    $add_row_to_jobTemplateDetails_T = 'INSERT INTO jobTemplateDetails_T (jobTemplate_id, taskTemplate_id, detailStatus_id) VALUES (?, ?, ?)';
+
+    if ($stmt = mysqli_prepare($db_conn, $add_row_to_jobTemplateDetails_T)) {
+        // Bind variables to the prepared statement as parameters
+        mysqli_stmt_bind_param($stmt, "iii", $par1, $par2, $par3);
+
+        $par1 = $current_jobTemplate_id;
+        $par2 = $add_task_temp_id;
+        $par3 = 1;
+
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+    }
+    
+}
+
+// delete a task template (hides row from view)
+if (isset($_GET['jobTemplate_id']) && isset($_GET['job_taskOrder'])) {
+
+    $current_jobTemplate_id = $_GET['jobTemplate_id'];
+    $current_job_taskOrder = $_GET['job_taskOrder'];
+
+    $hide_row_from_jobTemplateDetails_T = 'UPDATE jobTemplateDetails_T SET detailStatus_id = 0 WHERE jobTemplate_id = ? AND job_taskOrder = ?';
+
+    if ($stmt = mysqli_prepare($db_conn, $hide_row_from_jobTemplateDetails_T)) {
+        // Bind variables to the prepared statement as parameters
+        mysqli_stmt_bind_param($stmt, "ii", $par1, $par2);
+
+        $par1 = $current_jobTemplate_id;
+        $par2 = $current_job_taskOrder;
+
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+    }
+    header("Refresh:1");
+}
+
+// job template title results
+$jobTemplate_T_title_results = mysqli_query($db_conn, 'SELECT jobTemplate_id, job_title FROM jobTemplate_T WHERE jobTemplate_id =' . $current_jobTemplate_id);
+
+$Stmt3 = 'SELECT jobTemplateDetails_T.jobTemplate_id,jobTemplateDetails_T.taskTemplate_id,jobTemplateDetails_T.job_taskOrder,jobTemplateDetails_T.detailStatus_id, jobTemplate_T.job_title, taskTemplate_T.task_title FROM jobTemplateDetails_T LEFT JOIN jobTemplate_T ON jobTemplateDetails_T.jobTemplate_id = jobTemplate_T.jobTemplate_id LEFT JOIN taskTemplate_T ON jobTemplateDetails_T.taskTemplate_id = taskTemplate_T.taskTemplate_id WHERE jobTemplateDetails_T.detailStatus_id != 0 AND jobTemplateDetails_T.jobTemplate_id =' . $current_jobTemplate_id . ' ORDER BY job_taskOrder ASC';
+// view all details for a job template
+$jobTemplateDetails_T_results = mysqli_query($db_conn, $Stmt3);
+
+// task template results
+$taskTemplate_T_results = mysqli_query($db_conn, 'SELECT * FROM taskTemplate_T');
+
+// toggle buttons and functions
+$add_user_form_visible = "";
+function open_add_user_form()
+{
+}
+
+?>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>Job Template Admin Panel</title>
+</head>
+<style>
+    body {
+        font-family: "Raleway", sans-serif;
+        font-size: small
+    }
+</style>
+
+<body>
+    <section>
+        <div class="w3-center w3-padding-top-24">
+        <a href="./view-one-job-template.php?jobTemplate_id=<?php echo $current_jobTemplate_id; ?>"><button class="w3-button w3-round w3-blue">Return To Job Template Overview</button></a>
+        </div>
+        <br>
+    </section>
+    <div class="w3-container">
+        <hr>
+        <table class="w3-table">
+            <tr>
+                <th>Template ID</th>
+                <th>Job Template</th>
+                <th>Task Template ID</th>
+                <th>Task Template</th>
+                <th>Task Order</th>
+                <th>Remove</th>
+            </tr>
+            <?php $number = 1;
+            while ($jobTemplateDetails = mysqli_fetch_object($jobTemplateDetails_T_results)) { ?>
+                <tr>
+                    <td> <?php
+                            echo $jobTemplateDetails->jobTemplate_id; ?></td>
+                    <td><?php echo $jobTemplateDetails->job_title; ?></td>
+                    <td> <?php echo $jobTemplateDetails->taskTemplate_id; ?></td>
+                    <td> <?php echo $jobTemplateDetails->task_title; ?></td>
+                    <td><?php $order = $jobTemplateDetails->job_taskOrder;
+                        if ($order > 0) {
+                            echo $number;
+                            $number++;
+                        }
+                        ?>
+                    <td><a href="./job-template-admin.php?jobTemplate_id=<?php echo $current_jobTemplate_id ?>&job_taskOrder=<?php echo $jobTemplateDetails->job_taskOrder; ?>">
+                            <button class="w3-button w3-round w3-red">-</button>
+                        </a></td>
+                </tr>
+            <?php } ?>
+        </table>
+        <!-- the first w3-bar is for the headings across -->
+
+
+        <!-- Add new row w3-bar -->
+        <div class="w3-bar">
+            <!-- Add Button -->
+            <div class="w3-bar-item">
+                <div>
+                    <button id="add-user-btn" class="w3-button w3-round w3-green">+</button>
+                </div>
+            </div>
+            <!-- Text -->
+            <div class="w3-bar-item">
+                <div>
+                    <p class="content">Add A Task Template</p>
+                </div>
+            </div>
+            <!-- Empty w3-bar Item for spacing -->
+            <div class="w3-bar-item">
+                <div></div>
+            </div>
+        </div>
+        <!-- Hidden Form to Add a Row -->
+        <div class=" w3-hide" id="add-task-temp-form">
+            <form action="./job-template-admin.php" method="GET">
+                <!--Select Option-->
+               
+                <label for="add_user_id">Select A Task Template ID/Title</label>
+                <br>
+                <div class="">
+                    <div class="">
+                        <select name="add_task_temp_id" class="w3-select">
+                            <!-- formerly add_user_id -->
+                            <?php while ($TaskTemplateTitles = mysqli_fetch_object($taskTemplate_T_results)) { ?>
+
+                                <option value="<?php echo $TaskTemplateTitles->taskTemplate_id; ?>">
+                                    <?php echo $TaskTemplateTitles->task_title; ?>
+                                </option>
+                            <?php } ?>
+                        </select>
+                    </div>
+                </div>
+                <br>
+                <!-- Hidden field to perserve task_id upon submit -->
+                <input type="hidden" name="jobTemplate_id" value="<?php echo $current_jobTemplate_id; ?>">
+
+                <!-- Submit Button -->
+                <div class="">
+                    <div class="">
+                        <button type="submit" class="w3-button w3-round w3-blue">Submit</button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+        <hr>
+
+    </div>
+
+
+    <script type="text/javascript">
+        addRowBtn = document.getElementById("add-user-btn");
+        addRowForm = document.getElementById("add-task-temp-form");
+        addRowBtn.addEventListener("click", function() {
+            // checks to see if the class is listed or not. Add/removes class
+            addRowForm.classList.toggle("w3-hide");
+        });
+    </script>
+
+</body>
+
+</html>
